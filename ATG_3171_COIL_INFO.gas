@@ -1,0 +1,579 @@
+Program.Sub.ScreenSU.Start
+gui.F_Main..create
+gui.F_Main..caption("Coils")
+gui.F_Main..size(12000,8175)
+gui.F_Main..position(0,0)
+gui.F_Main..event(resize,f_main_resize)
+gui.F_Main..event(unload,f_main_unload)
+gui.F_Main..alwaysontop(False)
+gui.F_Main..fontname("Arial")
+gui.F_Main..fontsize(8)
+gui.F_Main..forecolor(0)
+gui.F_Main..fontstyle(,,,,)
+gui.F_Main..BackColor(-2147483633)
+gui.F_Main..controlbox(True)
+gui.F_Main..maxbutton(True)
+gui.F_Main..minbutton(True)
+gui.F_Main..mousepointer(0)
+gui.F_Main..moveable(True)
+gui.F_Main..sizeable(True)
+gui.F_Main..ShowInTaskBar(True)
+gui.F_Main..titlebar(True)
+gui.F_Main.flexgrid.create(gsflexgrid)
+gui.F_Main.flexgrid.FixedRows(0)
+gui.F_Main.flexgrid.FixedCols(0)
+gui.F_Main.flexgrid.visible(True)
+gui.F_Main.flexgrid.size(11340,6825)
+gui.F_Main.flexgrid.zorder(0)
+gui.F_Main.flexgrid.position(200,200)
+gui.F_Main.flexgrid.enabled(True)
+gui.F_Main.flexgrid.event(commandclick,flexgrid_commandclick)
+gui.F_Main.cmdSave.create(button)
+gui.F_Main.cmdSave.caption("Save")
+gui.F_Main.cmdSave.visible(True)
+gui.F_Main.cmdSave.size(855,375)
+gui.F_Main.cmdSave.zorder(0)
+gui.F_Main.cmdSave.position(200,7190)
+gui.F_Main.cmdSave.enabled(True)
+gui.F_Main.cmdSave.fontname("Arial")
+gui.F_Main.cmdSave.fontsize(8)
+gui.F_Main.cmdSave.event(click,cmdsave_click)
+gui.F_Main.cmdAdd.create(button)
+gui.F_Main.cmdAdd.caption("Add Line")
+gui.F_Main.cmdAdd.visible(True)
+gui.F_Main.cmdAdd.size(855,375)
+gui.F_Main.cmdAdd.zorder(0)
+gui.F_Main.cmdAdd.position(1205,7190)
+gui.F_Main.cmdAdd.enabled(True)
+gui.F_Main.cmdAdd.fontname("Arial")
+gui.F_Main.cmdAdd.fontsize(8)
+gui.F_Main.cmdAdd.event(click,cmdadd_click)
+
+
+Program.Sub.ScreenSU.End
+
+Program.Sub.Preflight.Start
+
+
+Variable.Global.sJob.Declare(String)
+Variable.Global.sSeq.Declare(String)
+Variable.UDT.uGrid.Define("Bundle",String,BUNDLE)
+Variable.UDT.uGrid.Define("Heat",String,HEAT)
+Variable.UDT.uGrid.Define("Coil_House",String,COIL_HOUSE)
+Variable.UDT.uGrid.Define("Box_Cust",String,BOX_CUST)
+Variable.UDT.uGrid.Define("Coil_Cust",String,COIL_CUST)
+Variable.UDT.uGrid.Define("Yellow_Marks",String,YELLOW_MARKS)
+Variable.UDT.uGrid.Define("Die",String,DIE)
+Variable.UDT.uGrid.Define("Coil_Lbs",String,COIL_LBS)
+Variable.UDT.uGrid.Define("Boolean",Boolean)
+
+Variable.UDT.uCopy.Define("Bundle",String,BUNDLE)
+Variable.UDT.uCopy.Define("Heat",String,HEAT)
+Variable.UDT.uCopy.Define("Coil_House",String,COIL_HOUSE)
+Variable.UDT.uCopy.Define("Box_Cust",String,BOX_CUST)
+Variable.UDT.uCopy.Define("Coil_Cust",String,COIL_CUST)
+Variable.UDT.uCopy.Define("Yellow_Marks",String,YELLOW_MARKS)
+Variable.UDT.uCopy.Define("Die",String,DIE)
+Variable.UDT.uCopy.Define("Coil_Lbs",String,COIL_LBS)
+Variable.UDT.uCopy.Define("Boolean",Boolean)
+Variable.uGlobal.uGrid.Declare("uGrid")
+Variable.uGlobal.uCopy.Declare("uCopy")
+
+Variable.Global.sSFX.Declare(String)
+Program.Sub.Preflight.End
+
+Program.Sub.Main.Start
+F.Intrinsic.Control.SetErrorHandler("Main_Err")
+F.Intrinsic.Control.ClearErrors
+
+V.Local.sError.Declare(String)
+
+F.Intrinsic.Control.If(V.Caller.Hook,=,"15840")
+	V.Passed.000048.Set("Coil Info")
+	F.Intrinsic.Control.End
+F.Intrinsic.Control.Else
+
+	'Coded by: JLH
+	'Project Start Date: 10/24/2011
+	F.ODBC.Connection!conx.OpenConnection(V.Ambient.PDSN,V.Ambient.PUser,V.Ambient.PPass)
+
+	V.Local.sJob.Declare(String)
+
+	F.Intrinsic.String.Concat("Coils for Job ",V.Passed.000004,V.Local.sJob)
+	Gui.F_Main..Caption(V.Local.sJob)
+
+	F.Intrinsic.String.Split(V.Passed.000004,"-",V.Local.sJob)
+	V.Global.sSFX.Set(V.Local.sJob(1))
+
+	F.Intrinsic.String.LPad(V.Local.sJob(0),"0",6,V.Local.sJob)
+	V.Global.sJob.Set(V.Local.sJob)
+	V.Global.sSeq.Set(V.Passed.000005)
+
+	'F.Intrinsic.Debug.InvokeDebugger
+	F.Intrinsic.Debug.Stop
+
+	V.uGlobal.uGrid.Redim(-1,-1)
+
+	F.Intrinsic.Control.CallSub(Buildstyle)
+	F.Intrinsic.Control.CallSub(Udt)
+	F.Intrinsic.Control.CallSub(Populate)
+
+	Gui.F_Main..Show
+
+F.Intrinsic.Control.EndIf
+
+F.Intrinsic.Control.ExitSub
+
+F.Intrinsic.Control.Label("Main_Err")
+F.Intrinsic.Control.If(V.Ambient.ErrorNumber,<>,0)
+	Function.Intrinsic.String.Concat("Project: ATG_COIL_INFO.gas",V.Ambient.Newline,V.Ambient.Newline,"Subroutine: ",V.Ambient.CurrentSubroutine,V.Ambient.NewLine,"Error Occurred ",V.Ambient.ErrorNumber," with description ",V.Ambient.ErrorDescription,V.Local.sError)
+	F.Intrinsic.UI.Msgbox(V.Local.sError)
+Function.Intrinsic.Control.EndIf
+
+
+
+Program.Sub.Main.End
+
+program.sub.cmdsave_click.start
+F.Intrinsic.Control.SetErrorHandler("cmdsave_click_Err")
+F.Intrinsic.Control.ClearErrors
+
+V.Local.sError.Declare(String)
+
+V.Local.iCount.Declare(Long)
+V.Local.sText.Declare(String)
+V.Local.sQuery.Declare(String)
+V.Local.iRow.Declare(Long)
+
+'F.Intrinsic.Debug.InvokeDebugger
+F.Intrinsic.Debug.Stop
+
+Gui.F_Main.flexgrid.Commit
+
+F.Intrinsic.Math.Sub(V.Screen.F_Main!flexgrid.Rows,1,V.Local.iRow)
+
+F.Intrinsic.Control.For(V.Local.iCount,1,V.Local.iRow,1)
+	F.Intrinsic.Control.CallSub(Save,"row",V.Local.iCount)
+F.Intrinsic.Control.Next(V.Local.iCount)
+
+F.Intrinsic.Control.CallSub(Udt)
+F.Intrinsic.Control.CallSub(Populate)
+
+
+F.Intrinsic.Control.ExitSub
+
+F.Intrinsic.Control.Label("cmdsave_click_Err")
+F.Intrinsic.Control.If(V.Ambient.ErrorNumber,<>,0)
+	Function.Intrinsic.String.Concat("Project: ATG_COIL_INFO.gas",V.Ambient.Newline,V.Ambient.Newline,"Subroutine: ",V.Ambient.CurrentSubroutine,V.Ambient.NewLine,"Error Occurred ",V.Ambient.ErrorNumber," with description ",V.Ambient.ErrorDescription,V.Local.sError)
+	F.Intrinsic.UI.Msgbox(V.Local.sError)
+Function.Intrinsic.Control.EndIf
+
+
+
+program.sub.cmdsave_click.end
+
+Program.Sub.Buildstyle.Start
+Gui.F_Main.flexgrid.Cols(9)
+Gui.F_Main.flexgrid.Rows(2)
+
+Gui.F_Main.flexgrid.SetColumnPercentages(".12:.12:.12:.12:.12:.12:.12:.12:.05")
+
+
+'Bundle #
+Gui.F_Main.flexgrid.TextMatrix(0,0,"Bundle")
+Gui.F_Main.flexgrid.BuildStyle(1,0,"Type","Locked","True")
+Gui.F_Main.flexgrid.BuildStyle(1,0,"Format","Alignment",4)
+Gui.F_Main.flexgrid.BuildStyle(2,0,"Format","Alignment",6)
+
+'Heat #
+Gui.F_Main.flexgrid.TextMatrix(1,0,"Heat")
+Gui.F_Main.flexgrid.BuildStyle(1,1,"Type","Locked","True")
+Gui.F_Main.flexgrid.BuildStyle(1,1,"Format","Alignment",4)
+Gui.F_Main.flexgrid.BuildStyle(2,1,"Format","Alignment",6)
+
+'In House Coil
+Gui.F_Main.flexgrid.TextMatrix(2,0,"In House Coil")
+Gui.F_Main.flexgrid.BuildStyle(1,2,"Type","Locked","True")
+Gui.F_Main.flexgrid.BuildStyle(1,2,"Format","Alignment",4)
+Gui.F_Main.flexgrid.BuildStyle(2,2,"Format","Alignment",6)
+
+'Customer Coil
+Gui.F_Main.flexgrid.TextMatrix(3,0,"Customer Coil")
+Gui.F_Main.flexgrid.BuildStyle(1,3,"Type","Locked","True")
+Gui.F_Main.flexgrid.BuildStyle(1,3,"Format","Alignment",4)
+Gui.F_Main.flexgrid.BuildStyle(2,3,"Format","Alignment",6)
+
+
+'Customer Box
+Gui.F_Main.flexgrid.TextMatrix(4,0,"Customer Box")
+Gui.F_Main.flexgrid.BuildStyle(1,4,"Type","Locked","True")
+Gui.F_Main.flexgrid.BuildStyle(1,4,"Format","Alignment",4)
+Gui.F_Main.flexgrid.BuildStyle(2,4,"Format","Alignment",6)
+
+
+'# Yellow Marks
+Gui.F_Main.flexgrid.TextMatrix(5,0,"# Yellow Marks")
+Gui.F_Main.flexgrid.BuildStyle(1,5,"Type","Locked","True")
+Gui.F_Main.flexgrid.BuildStyle(1,5,"Format","Alignment",4)
+Gui.F_Main.flexgrid.BuildStyle(2,5,"Format","Alignment",6)
+
+'Die #
+Gui.F_Main.flexgrid.TextMatrix(6,0,"Die")
+Gui.F_Main.flexgrid.BuildStyle(1,6,"Type","Locked","True")
+Gui.F_Main.flexgrid.BuildStyle(1,6,"Format","Alignment",4)
+Gui.F_Main.flexgrid.BuildStyle(2,6,"Format","Alignment",6)
+
+
+'Coil Weight lbs
+Gui.F_Main.flexgrid.TextMatrix(7,0,"Coil Weight")
+Gui.F_Main.flexgrid.BuildStyle(1,7,"Type","Locked","True")
+Gui.F_Main.flexgrid.BuildStyle(1,7,"Format","Alignment",4)
+Gui.F_Main.flexgrid.BuildStyle(2,7,"Format","Alignment",6)
+
+'Submit button
+Gui.F_Main.flexgrid.BuildStyle(1,8,"Type","Locked","True")
+Gui.F_Main.flexgrid.BuildStyle(1,8,"Format","Alignment",4)
+Gui.F_Main.flexgrid.BuildStyle(2,8,"Format","Alignment",6)
+Gui.F_Main.flexgrid.BuildStyle(2,8,"Type","Command","Submit")
+
+Gui.F_Main.flexgrid.ApplyStyle(0,1)
+'Gui.F_Main.flexgrid.ApplyStyle(1,3)
+
+
+
+Program.Sub.Buildstyle.End
+
+program.sub.f_main_unload.start
+F.Intrinsic.Control.CallSub(Cmdsave_click)
+
+F.ODBC.Connection!conx.Close
+F.Intrinsic.Control.End
+
+program.sub.f_main_unload.end
+
+Program.Sub.Populate.Start
+F.Intrinsic.Control.SetErrorHandler("Populate_Err")
+F.Intrinsic.Control.ClearErrors
+
+V.Local.sError.Declare(String)
+
+Gui.F_Main.flexgrid.LoadFromUDT("v.uglobal.ugrid","Bundle::0*!*Heat::1*!*Coil_House::2*!*Coil_Cust::3*!*Box_Cust::4*!*Yellow_Marks::5*!*Die::6*!*Coil_lbs::7",2)
+
+F.Intrinsic.Control.If(V.Screen.F_Main!flexgrid.Rows,<,2)
+	Gui.F_Main.flexgrid.Rows(2)
+	Gui.F_Main.flexgrid.FixedRows(1)
+	Gui.F_Main.flexgrid.ApplyStyle(1,2)
+F.Intrinsic.Control.Else
+	'Gui.F_Main.flexgrid.Rows(2)
+	Gui.F_Main.flexgrid.FixedRows(1)
+	'Gui.F_Main.flexgrid.ApplyStyle(1,2)
+F.Intrinsic.Control.EndIf
+
+F.Intrinsic.Control.ExitSub
+
+F.Intrinsic.Control.Label("Populate_Err")
+F.Intrinsic.Control.If(V.Ambient.ErrorNumber,<>,0)
+	Function.Intrinsic.String.Concat("Project: ATG_COIL_INFO.gas",V.Ambient.Newline,V.Ambient.Newline,"Subroutine: ",V.Ambient.CurrentSubroutine,V.Ambient.NewLine,"Error Occurred ",V.Ambient.ErrorNumber," with description ",V.Ambient.ErrorDescription,V.Local.sError)
+	F.Intrinsic.UI.Msgbox(V.Local.sError)
+Function.Intrinsic.Control.EndIf
+
+
+
+Program.Sub.Populate.End
+
+program.sub.cmdadd_click.start
+F.Intrinsic.Control.SetErrorHandler("cmdadd_click_Err")
+F.Intrinsic.Control.ClearErrors
+
+V.Local.sError.Declare(String)
+
+V.Local.iRow.Declare(Long)
+
+'F.Intrinsic.Debug.InvokeDebugger
+'F.Intrinsic.Debug.Stop
+
+V.Local.iRow.Set(V.Screen.F_Main!flexgrid.Rows)
+F.Intrinsic.Math.Add(V.Local.iRow,1,V.Local.iRow)
+Gui.F_Main.flexgrid.Rows(V.Local.iRow)
+V.Local.iRow.Set(V.Screen.F_Main!flexgrid.Rows)
+F.Intrinsic.Math.Sub(V.Local.iRow,1,V.local.iRow)
+Gui.F_Main.flexgrid.ApplyStyle(V.Local.iRow,2)
+Gui.F_Main.flexgrid.FixedRows(1)
+
+F.Intrinsic.Control.ExitSub
+
+F.Intrinsic.Control.Label("cmdadd_click_Err")
+F.Intrinsic.Control.If(V.Ambient.ErrorNumber,<>,0)
+	Function.Intrinsic.String.Concat("Project: ATG_COIL_INFO.gas",V.Ambient.Newline,V.Ambient.Newline,"Subroutine: ",V.Ambient.CurrentSubroutine,V.Ambient.NewLine,"Error Occurred ",V.Ambient.ErrorNumber," with description ",V.Ambient.ErrorDescription,V.Local.sError)
+	F.Intrinsic.UI.Msgbox(V.Local.sError)
+Function.Intrinsic.Control.EndIf
+
+
+
+program.sub.cmdadd_click.end
+
+program.sub.flexgrid_commandclick.start
+F.Intrinsic.Control.SetErrorHandler("flexgrid_commandclick_Err")
+F.Intrinsic.Control.ClearErrors
+
+V.Local.sError.Declare(String)
+
+V.Local.irow.Declare(Long)
+V.Local.sQuery.Declare(String)
+
+'F.Intrinsic.Debug.InvokeDebugger
+F.Intrinsic.Debug.Stop
+
+F.Intrinsic.Control.If(V.uGlobal.uGrid.UBound,>,-1)
+
+
+F.Intrinsic.Control.CallSub(Save,"row",V.args.key)
+F.Intrinsic.Control.CallSub(Udt_add,"row",V.Args.key)
+
+F.Intrinsic.Debug.Stop
+
+	F.Intrinsic.Math.Sub(V.Args.key,1,V.Local.irow)
+	F.Intrinsic.String.Concat("Select * from X_3171_LOT_BIN where JOB='",V.Global.sJob,"' and Suffix='",V.Global.sSFX,"' and KEY_SEQ='",V.uGlobal.uGrid(v.Local.irow)!Coil_House,"'",V.Local.sQuery)
+	F.ODBC.Connection!conx.OpenRecordsetRW("rst",V.Local.sQuery)
+	F.Intrinsic.Control.If(V.ODBC.conx!rst.EOF,=,True)
+		F.ODBC.conx!rst.AddNew
+		F.ODBC.conx!rst.Set!Job(V.global.sJob)
+		F.ODBC.conx!rst.Set!Suffix(V.Global.sSFX)
+	'	F.ODBC.conx!rst.Set!SEQ(v.Global.sSeq)
+		F.ODBC.conx!rst.Set!SEQ("000000")
+		F.ODBC.conx!rst.Set!Key_Seq(V.uGlobal.uGrid(v.Local.irow)!Coil_House)
+		F.ODBC.conx!rst.Set!LOT(V.uGlobal.uGrid(v.Local.irow)!Box_Cust)
+		F.ODBC.conx!rst.Set!BIN("")
+		F.ODBC.conx!rst.Set!HEAT(V.uGlobal.uGrid(v.Local.irow)!Heat)
+		F.ODBC.conx!rst.Set!SERIAL(V.uGlobal.uGrid(v.Local.irow)!Coil_Cust)
+		F.ODBC.conx!rst.Set!QTY("1")
+		F.ODBC.conx!rst.Update
+		F.ODBC.conx!rst.Close
+		F.Intrinsic.Control.CallSub(Delete,"row",V.local.irow)
+	F.Intrinsic.Control.Else
+		F.Intrinsic.UI.Msgbox("House Coil already exists!")
+		F.ODBC.conx!rst.Close
+		F.Intrinsic.Control.ExitSub
+	F.Intrinsic.Control.EndIf
+F.Intrinsic.Control.EndIf
+
+F.Intrinsic.Control.ExitSub
+
+F.Intrinsic.Control.Label("flexgrid_commandclick_Err")
+F.Intrinsic.Control.If(V.Ambient.ErrorNumber,<>,0)
+	Function.Intrinsic.String.Concat("Project: ATG_COIL_INFO.gas",V.Ambient.Newline,V.Ambient.Newline,"Subroutine: ",V.Ambient.CurrentSubroutine,V.Ambient.NewLine,"Error Occurred ",V.Ambient.ErrorNumber," with description ",V.Ambient.ErrorDescription,V.Local.sError)
+	F.Intrinsic.UI.Msgbox(V.Local.sError)
+Function.Intrinsic.Control.EndIf
+
+
+
+program.sub.flexgrid_commandclick.end
+
+Program.Sub.UDT.Start
+F.Intrinsic.Control.SetErrorHandler("UDT_Err")
+F.Intrinsic.Control.ClearErrors
+
+V.Local.sError.Declare(String)
+
+V.Local.sQuery.Declare(String)
+V.Local.sText.Declare(String)
+V.Local.iRow.Declare(String)
+
+'F.Intrinsic.Debug.InvokeDebugger
+F.Intrinsic.Debug.Stop
+
+'F.Intrinsic.String.Concat("Select BUNDLE, HEAT, COIL_HOUSE, COIL_CUST, BOX_CUST, YELLOW_MARKS, DIE, COIL_LBS  from ATG_COIL_INFO where SUBMITTED='N' and JOB='",V.Global.sJob,"'and SUFFIX='",V.Global.sSFX,"' AND SEQ='",V.Global.sSeq,"'",V.Local.sQuery)
+F.Intrinsic.String.Concat("Select BUNDLE, HEAT, COIL_HOUSE, COIL_CUST, BOX_CUST, YELLOW_MARKS, DIE, COIL_LBS  from ATG_3171_COIL_INFO where SUBMITTED='N' and JOB='",V.global.sJob,"'and SUFFIX='",V.global.sSFX,"'",V.Local.sQuery)
+F.ODBC.Connection!conx.OpenRecordsetRO("rst",V.Local.sQuery)
+F.Intrinsic.Control.If(V.ODBC.conx!rst.EOF,<>,True)
+	F.Intrinsic.Variable.LoadUDTFromRecordset("conx","rst","uglobal.ugrid",False,10000)
+F.Intrinsic.Control.EndIf
+F.ODBC.conx!rst.Close
+
+F.Intrinsic.Control.ExitSub
+
+F.Intrinsic.Control.Label("UDT_Err")
+F.Intrinsic.Control.If(V.Ambient.ErrorNumber,<>,0)
+	Function.Intrinsic.String.Concat("Project: ATG_COIL_INFO.gas",V.Ambient.Newline,V.Ambient.Newline,"Subroutine: ",V.Ambient.CurrentSubroutine,V.Ambient.NewLine,"Error Occurred ",V.Ambient.ErrorNumber," with description ",V.Ambient.ErrorDescription,V.Local.sError)
+	F.Intrinsic.UI.Msgbox(V.Local.sError)
+Function.Intrinsic.Control.EndIf
+
+
+
+Program.Sub.UDT.End
+
+Program.Sub.Delete.Start
+F.Intrinsic.Control.SetErrorHandler("Delete_Err")
+F.Intrinsic.Control.ClearErrors
+
+V.Local.sError.Declare(String)
+
+
+V.uGlobal.uGrid(v.args.Row)!Boolean.Set(True)
+
+F.Intrinsic.Variable.UDTMultiFlag(V.uGlobal.uGrid!Boolean,"True")
+F.Intrinsic.Variable.UDTDeleteFlagged(V.uGlobal.uGrid)
+
+F.Intrinsic.Control.CallSub(Populate)
+
+
+F.Intrinsic.Control.ExitSub
+
+F.Intrinsic.Control.Label("Delete_Err")
+F.Intrinsic.Control.If(V.Ambient.ErrorNumber,<>,0)
+	Function.Intrinsic.String.Concat("Project: ATG_COIL_INFO.gas",V.Ambient.Newline,V.Ambient.Newline,"Subroutine: ",V.Ambient.CurrentSubroutine,V.Ambient.NewLine,"Error Occurred ",V.Ambient.ErrorNumber," with description ",V.Ambient.ErrorDescription,V.Local.sError)
+	F.Intrinsic.UI.Msgbox(V.Local.sError)
+Function.Intrinsic.Control.EndIf
+
+
+
+Program.Sub.Delete.End
+
+Program.Sub.Save.Start
+F.Intrinsic.Control.SetErrorHandler("Save_Err")
+F.Intrinsic.Control.ClearErrors
+
+V.Local.sError.Declare(String)
+
+V.local.sText.declare(String)
+V.local.sQuery.declare(String)
+V.Local.sSub.Declare(String)
+
+'F.Intrinsic.Debug.InvokeDebugger
+F.Intrinsic.Debug.Stop
+
+Gui.F_Main.flexgrid.ReadRow(V.args.Row,V.local.sText)
+F.Intrinsic.String.Split(V.Local.sText,"*!*",V.local.sText)
+F.Intrinsic.Control.If(V.Local.sText(2),<>,"")
+	'F.Intrinsic.String.Concat("Select * from ATG_COIL_INFO where JOB='",V.global.sJob,"' and SUFFIX='",V.global.sSFX,"' and SEQ='",V.Global.sSeq,"' and COIL_HOUSE='",V.Local.sText(2),"'",V.Local.sQuery)
+	F.Intrinsic.String.Concat("Select * from ATG_3171_COIL_INFO where JOB='",V.global.sJob,"' and SUFFIX='",V.global.sSFX,"' and COIL_HOUSE='",V.Local.sText(2),"'",V.Local.sQuery)
+	F.ODBC.Connection!conx.OpenRecordsetRW("rst",V.Local.sQuery)
+	F.Intrinsic.Control.If(V.ODBC.conx!rst.EOF,=,False)
+		F.ODBC.conx!rst.Set!BUNDLE(V.Local.sText(0))
+		F.ODBC.conx!rst.Set!HEAT(V.Local.sText(1))
+		F.ODBC.conx!rst.Set!COIL_CUST(V.Local.sText(3))
+		F.ODBC.conx!rst.Set!BOX_CUST(V.Local.sText(4))
+		F.ODBC.conx!rst.Set!YELLOW_MARKS(V.Local.sText(5))
+		F.ODBC.conx!rst.Set!DIE(V.Local.sText(6))
+		F.ODBC.conx!rst.Set!COIL_LBS(V.Local.sText(7))
+		f.Intrinsic.Control.If(v.Ambient.subroutinecalledfrom,=,"FLEXGRID_COMMANDCLICK")
+			F.ODBC.conx!rst.Set!SUBMITTED("Y")
+		F.Intrinsic.Control.EndIf
+		F.ODBC.conx!rst.Update
+		F.ODBC.conx!rst.Close
+	F.Intrinsic.Control.Else
+		F.ODBC.conx!rst.AddNew
+		F.ODBC.conx!rst.Set!JOB(V.global.sJob)
+		F.ODBC.conx!rst.Set!SUFFIX(V.global.sSFX)
+		'F.ODBC.conx!rst.Set!SEQ(V.global.sSeq)
+		F.ODBC.conx!rst.Set!SEQ("000000")
+		F.ODBC.conx!rst.Set!BUNDLE(V.Local.sText(0))
+		F.ODBC.conx!rst.Set!HEAT(V.Local.sText(1))
+		F.ODBC.conx!rst.Set!COIL_HOUSE(V.Local.sText(2))
+		F.ODBC.conx!rst.Set!COIL_CUST(V.Local.sText(3))
+		F.ODBC.conx!rst.Set!BOX_CUST(V.Local.sText(4))
+		F.ODBC.conx!rst.Set!YELLOW_MARKS(V.Local.sText(5))
+		F.ODBC.conx!rst.Set!DIE(V.Local.sText(6))
+		F.ODBC.conx!rst.Set!COIL_LBS(V.Local.sText(7))
+		f.Intrinsic.Control.If(v.Ambient.subroutinecalledfrom,=,"FLEXGRID_COMMANDCLICK")
+			F.ODBC.conx!rst.Set!SUBMITTED("Y")
+		F.Intrinsic.Control.Else
+			F.ODBC.conx!rst.Set!SUBMITTED("N")
+		F.Intrinsic.Control.EndIf
+		F.ODBC.conx!rst.Update
+		F.ODBC.conx!rst.Close
+	F.Intrinsic.Control.Endif
+F.Intrinsic.Control.EndIf
+
+
+F.Intrinsic.Control.ExitSub
+
+F.Intrinsic.Control.Label("Save_Err")
+F.Intrinsic.Control.If(V.Ambient.ErrorNumber,<>,0)
+	Function.Intrinsic.String.Concat("Project: ATG_COIL_INFO.gas",V.Ambient.Newline,V.Ambient.Newline,"Subroutine: ",V.Ambient.CurrentSubroutine,V.Ambient.NewLine,"Error Occurred ",V.Ambient.ErrorNumber," with description ",V.Ambient.ErrorDescription,V.Local.sError)
+	F.Intrinsic.UI.Msgbox(V.Local.sError)
+Function.Intrinsic.Control.EndIf
+
+
+
+Program.Sub.Save.End
+
+Program.Sub.UDT_Add.Start
+F.Intrinsic.Control.SetErrorHandler("UDT_Add_Err")
+F.Intrinsic.Control.ClearErrors
+
+V.Local.sError.Declare(String)
+
+V.Local.sText.Declare(String)
+V.Local.iPos.Declare(String)
+
+F.Intrinsic.Debug.Stop
+
+F.Intrinsic.Math.Sub(V.Args.Row,1,V.Local.iPos)
+F.Intrinsic.Control.If(V.Local.iPos,>,V.uGlobal.uGrid.UBound)
+	V.uGlobal.uGrid.RedimPreserve(0,V.Local.iPos)
+F.Intrinsic.Control.EndIf
+
+
+Gui.F_Main.flexgrid.ReadRow(V.args.Row,V.Local.sText)
+F.Intrinsic.String.Split(V.Local.sText,"*!*",V.Local.sText)
+V.uGlobal.uGrid(v.Local.iPos)!Bundle.Set(V.Local.sText(0))
+V.uGlobal.uGrid(v.Local.iPos)!Heat.Set(V.Local.sText(1))
+V.uGlobal.uGrid(v.Local.iPos)!Coil_House.Set(V.Local.sText(2))
+V.uGlobal.uGrid(v.Local.iPos)!Coil_cust.Set(V.Local.sText(3))
+V.uGlobal.uGrid(v.Local.iPos)!Box_Cust.Set(V.Local.sText(4))
+V.uGlobal.uGrid(v.Local.iPos)!Yellow_Marks.Set(V.Local.sText(5))
+V.uGlobal.uGrid(v.Local.iPos)!Die.Set(V.Local.sText(6))
+V.uGlobal.uGrid(v.Local.iPos)!Coil_lbs.Set(V.Local.sText(7))
+
+F.Intrinsic.Control.ExitSub
+
+F.Intrinsic.Control.Label("UDT_Add_Err")
+F.Intrinsic.Control.If(V.Ambient.ErrorNumber,<>,0)
+	Function.Intrinsic.String.Concat("Project: ATG_COIL_INFO.gas",V.Ambient.Newline,V.Ambient.Newline,"Subroutine: ",V.Ambient.CurrentSubroutine,V.Ambient.NewLine,"Error Occurred ",V.Ambient.ErrorNumber," with description ",V.Ambient.ErrorDescription,V.Local.sError)
+	F.Intrinsic.UI.Msgbox(V.Local.sError)
+Function.Intrinsic.Control.EndIf
+
+
+
+Program.Sub.UDT_Add.End
+
+program.sub.f_main_resize.start
+F.Intrinsic.Control.SetErrorHandler("f_main_resize_Err")
+F.Intrinsic.Control.ClearErrors
+
+V.Local.sError.Declare(String)
+
+V.Local.iW.Declare(Long)
+V.Local.iH.Declare(Long)
+
+F.Intrinsic.Control.If(V.Screen.F_Main.Width,<,12000)
+	Gui.F_Main..Size(12000,V.Screen.F_Main.Height)
+F.Intrinsic.Control.Endif
+
+F.Intrinsic.Control.If(V.Screen.F_Main.Height,<,8175)
+	Gui.F_Main..Size(V.Screen.F_Main.Width,8175)
+F.Intrinsic.Control.Endif
+
+F.Intrinsic.Math.Sub(V.Screen.F_Main.Width,660,V.Local.iW)
+F.Intrinsic.Math.Sub(V.Screen.F_Main.Height,1350,V.Local.iH)
+Gui.F_Main.flexgrid.Size(V.Local.iW,V.Local.iH)
+
+F.Intrinsic.Math.Sub(V.Screen.F_Main.Height,1050,V.Local.iH)
+Gui.F_Main.cmdAdd.Position(1205,V.Local.iH)
+Gui.F_Main.cmdSave.Position(200,V.Local.iH)
+
+
+F.Intrinsic.Control.ExitSub
+
+F.Intrinsic.Control.Label("f_main_resize_Err")
+F.Intrinsic.Control.If(V.Ambient.ErrorNumber,<>,0)
+	Function.Intrinsic.String.Concat("Project: ATG_COIL_INFO.gas",V.Ambient.Newline,V.Ambient.Newline,"Subroutine: ",V.Ambient.CurrentSubroutine,V.Ambient.NewLine,"Error Occurred ",V.Ambient.ErrorNumber," with description ",V.Ambient.ErrorDescription,V.Local.sError)
+	F.Intrinsic.UI.Msgbox(V.Local.sError)
+Function.Intrinsic.Control.EndIf
+
+
+
+program.sub.f_main_resize.end
+
+
